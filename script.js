@@ -355,6 +355,14 @@
     }); io.observe(dd);
   }
 
+  /* ── Founder "read more" (mobile) ── */
+  const foBtn = $('.fo-more'), foText = $('#foText');
+  foBtn && foBtn.addEventListener('click', () => {
+    const open = foText.classList.toggle('is-open');
+    foBtn.setAttribute('aria-expanded', String(open));
+    foBtn.textContent = open ? foBtn.dataset.less : foBtn.dataset.more;
+  });
+
   $('#year').textContent = new Date().getFullYear();
   renderCart();
   applyFilters();
