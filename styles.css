@@ -497,3 +497,12 @@ video::cue{font-family:var(--font);font-size:1.05rem;background:rgba(0,0,0,.6)}
   .fo-facts small{font-size:.68rem}
   .founder-body .btn{width:100%}
 }
+/* Sunfruit (glass bottles) */
+.chip-sunfruit{background:#1B6E35;color:#fff}
+.bg-sunfruit{background:linear-gradient(165deg,#F3FAF0,#DCEFD6)}
+.dot-sunfruit{background:#2E7D32}
+.pc-photo .pc-img{inset:0;width:100%;height:100%;max-width:none;object-fit:cover;object-position:50% 25%}
+.pc-photo::after{display:none}
+@media (hover:hover){.pc:hover .pc-photo .pc-img{transform:scale(1.04)}}
+.spot-sunfruit .spot-media{padding:0;aspect-ratio:4/4.4}
+.spot-sunfruit .spot-media img{object-fit:cover}
