@@ -53,16 +53,12 @@ body.locked{overflow:hidden}
 .chip-sunice{background:#0277BD;color:#fff}
 .chip-suncrunch{background:#FFC928;color:#2B1D00}
 .chip-sunfun{background:#C63D12;color:#fff}
-.chip-sunplus{background:#FFB300;color:#2E1D00}
-.chip-kino{background:#1565C0;color:#fff}
 .bg-matrix{background:linear-gradient(165deg,#F1F8EC,#D9ECF8)}
 .bg-sunice{background:linear-gradient(165deg,#ECF8FD,#CCEBFA)}
 .bg-suncrunch{background:linear-gradient(165deg,#FFF9E6,#FFE7A3)}
 .bg-sunfun{background:linear-gradient(165deg,#FFF4E5,#FFDDB0)}
-.bg-sunplus{background:linear-gradient(165deg,#FFFDE8,#FFF0B5)}
-.bg-kino{background:linear-gradient(165deg,#F2F5FF,#DFE7FF)}
 .dot{display:inline-block;width:10px;height:10px;border-radius:50%}
-.dot-matrix{background:#0D47A1}.dot-sunice{background:#0288D1}.dot-suncrunch{background:#F9A825}.dot-sunfun{background:#E64A19}.dot-sunplus{background:#FFB300}.dot-kino{background:#1565C0}
+.dot-matrix{background:#0D47A1}.dot-sunice{background:#0288D1}.dot-suncrunch{background:#F9A825}.dot-sunfun{background:#E64A19}
 
 /* ── Section heads ── */
 .section{padding:88px 0}
