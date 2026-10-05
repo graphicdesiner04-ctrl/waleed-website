@@ -271,15 +271,18 @@
     if (!validPhone(v('phone'))) return formError(formEl, T.err_phone, ck.phone);
     formError(formEl, null);
     store.set('wm_customer', { name: v('name'), phone: v('phone'), city: v('city'), shop: v('shop') });
-    const lines = [T.order_head, ''];
+    // one tidy, scannable message: customer block → items → notes
+    const rule = '━━━━━━━━━━━━';
+    const lines = [T.order_head, '', '*' + (T.sec_customer || T.name) + '*', '• ' + T.name + ': ' + v('name'), '• ' + T.phone + ': ' + v('phone')];
+    if (v('city')) lines.push('• ' + T.city + ': ' + v('city'));
+    if (v('shop')) lines.push('• ' + T.shop + ': ' + v('shop'));
+    lines.push(rule, '*' + (T.sec_items || T.items) + ' (' + cart.length + ')*');
     cart.forEach((it, n) => {
       const p = P[it.id];
-      lines.push(`${n + 1}) ${p.brand} — ${p.name}: ${it.qty} ${UNITS[it.unit] || UNITS[0]}` + (p.pack && it.unit === 0 ? ` (${T.pack}: ${p.pack})` : ''));
+      lines.push(`${n + 1}) ${p.brand} — ${p.name}`,
+        `    ${T.qty || ''}: ${it.qty} ${UNITS[it.unit] || UNITS[0]}` + (p.pack && it.unit === 0 ? ` (${T.pack}: ${p.pack})` : ''));
     });
-    lines.push('', T.items + ': ' + cart.length, '', T.name + ': ' + v('name'), T.phone + ': ' + v('phone'));
-    if (v('shop')) lines.push(T.shop + ': ' + v('shop'));
-    if (v('city')) lines.push(T.city + ': ' + v('city'));
-    if (v('note')) lines.push(T.note + ': ' + v('note'));
+    if (v('note')) lines.push(rule, '*' + T.note + ':* ' + v('note'));
     logOrder({ type: 'order', name: v('name'), phone: v('phone'), city: v('city'), shop: v('shop'), note: v('note'),
       items: cart.map(it => ({ id: it.id, product: P[it.id].brand + ' — ' + P[it.id].name, qty: it.qty, unit: UNITS[it.unit] })) });
     track('send_order', { items: cart.length });
@@ -289,10 +292,56 @@
 
   /* ── Product dialog ── */
   const pd = $('#pd'); let pdId = null;
+  const pdImg = $('#pdImg'), pdThumbs = $('#pdThumbs'), pdHint = $('#pdSpinHint'), pdMedia = $('#pdMedia');
+
+  /* 360° viewer: only for products that ship real sequential frames (p.spin, >= 8).
+     Drag (mouse) or swipe (touch) scrubs through the frames; frames load on first open only. */
+  let spin = null;
+  function setupSpin(p) {
+    spin = null; pdMedia.classList.remove('is-spin'); pdHint.hidden = true;
+    const fr = (p.spin || []).filter(Boolean);
+    if (fr.length < 8) return false;
+    fr.forEach(src => { const im = new Image(); im.decoding = 'async'; im.src = src; });   // warm cache
+    spin = { fr, i: 0, x0: null };
+    pdImg.src = fr[0]; pdMedia.classList.add('is-spin'); pdHint.hidden = false;
+    return true;
+  }
+  pdMedia.addEventListener('pointerdown', e => {
+    if (!spin) return; spin.x0 = e.clientX; spin.i0 = spin.i; pdHint.hidden = true;
+    try { pdMedia.setPointerCapture(e.pointerId); } catch (_) {}
+  });
+  pdMedia.addEventListener('pointermove', e => {
+    if (!spin || spin.x0 === null) return;
+    const step = Math.max(6, pdMedia.clientWidth / spin.fr.length / 1.2);   // px per frame
+    const d = Math.round((e.clientX - spin.x0) / step) * (document.dir === 'rtl' ? -1 : 1);
+    const n = ((spin.i0 + d) % spin.fr.length + spin.fr.length) % spin.fr.length;
+    if (n !== spin.i) { spin.i = n; pdImg.src = spin.fr[n]; }
+  });
+  ['pointerup', 'pointercancel'].forEach(ev => pdMedia.addEventListener(ev, () => { if (spin) spin.x0 = null; }));
+
+  function setupThumbs(p) {
+    pdThumbs.innerHTML = '';
+    const g = (p.gallery || []).filter(Boolean);
+    pdThumbs.hidden = spin !== null || g.length < 2;
+    if (pdThumbs.hidden) return;
+    g.forEach((src, n) => {
+      const b = document.createElement('button'); b.type = 'button'; b.className = 'pd-thumb' + (n === 0 ? ' is-on' : '');
+      b.setAttribute('aria-label', fmt(T.view_n || '{n}', { n: n + 1 })); b.setAttribute('aria-pressed', String(n === 0));
+      const im = document.createElement('img'); im.src = src.replace(/\.webp$/, '-sm.webp'); im.alt = ''; im.width = 40; im.height = 88; im.loading = 'lazy';
+      b.append(im);
+      b.addEventListener('click', () => {
+        pdImg.src = src;
+        $$('.pd-thumb', pdThumbs).forEach(x => { const on = x === b; x.classList.toggle('is-on', on); x.setAttribute('aria-pressed', String(on)); });
+      });
+      pdThumbs.append(b);
+    });
+  }
+
   function openProduct(id) {
     const p = P[id]; if (!p) return; pdId = id;
-    $('#pdImg').src = p.full; $('#pdImg').alt = p.brand + ' ' + p.name;
-    $('#pdMedia').className = 'pd-media bg-' + p.brandId;
+    pdImg.src = p.full; pdImg.alt = p.brand + ' ' + p.name;
+    pdMedia.className = 'pd-media bg-' + p.brandId;
+    setupSpin(p); setupThumbs(p);
     const chip = $('#pdBrand'); chip.textContent = p.brand; chip.className = 'chip chip-' + p.brandId;
     $('#pdCat').textContent = p.category; $('#pdName').textContent = p.name;
     $('#pdTags').innerHTML = ''; p.tags.forEach(t => { const s = document.createElement('span'); s.textContent = t; $('#pdTags').append(s); });
@@ -345,15 +394,33 @@
     v.addEventListener('pause', () => fr.classList.remove('is-playing'));
   });
 
-  /* ── Hero counter ── */
-  const dd = $('[data-count]');
-  if (dd && !reduce && 'IntersectionObserver' in window) {
-    const io = new IntersectionObserver(es => { if (!es[0].isIntersecting) return; io.disconnect();
-      const to = +dd.dataset.count, t0 = performance.now();
-      const step = now => { const p = Math.min(1, (now - t0) / 1100); dd.textContent = '+' + Math.round(to * (1 - Math.pow(1 - p, 3))); if (p < 1) requestAnimationFrame(step); };
+  /* ── Hero counters (count up once when the stats come into view) ── */
+  const counters = $$('[data-count]');
+  if (counters.length && !reduce && 'IntersectionObserver' in window) {
+    const io = new IntersectionObserver(es => { if (!es.some(en => en.isIntersecting)) return; io.disconnect();
+      const t0 = performance.now();
+      const step = now => {
+        const p = Math.min(1, (now - t0) / 1200), k = 1 - Math.pow(1 - p, 3);
+        counters.forEach(dd => { dd.textContent = (dd.dataset.prefix || '') + Math.round(+dd.dataset.count * k); });
+        if (p < 1) requestAnimationFrame(step);
+      };
       requestAnimationFrame(step);
-    }); io.observe(dd);
+    }); counters.forEach(dd => io.observe(dd));
   }
+
+  /* ── Reveal on scroll (progressive: content is visible without JS / with reduced motion) ── */
+  if (!reduce && 'IntersectionObserver' in window) {
+    const els = $$('.sec-head, .brand-row-head, .spot, .why li, .fo-facts li, .vid, .gal, .contact-list li, .form, .howto');
+    const rio = new IntersectionObserver(es => es.forEach(en => {
+      if (!en.isIntersecting) return; en.target.classList.add('is-in'); rio.unobserve(en.target);
+    }), { rootMargin: '0px 0px -8% 0px' });
+    els.forEach((el, i) => {
+      if (el.getBoundingClientRect().top < innerHeight) return;           // already on screen: never hide it
+      el.classList.add('rv'); el.style.setProperty('--rv-d', (i % 4) * 60 + 'ms'); rio.observe(el);
+    });
+  }
+
+  document.addEventListener('keydown', e => { if (e.key === 'Escape' && !drawer.hidden) { setDrawer(false); burger.focus(); } });
 
   /* ── Founder "read more" (mobile) ── */
   const foBtn = $('.fo-more'), foText = $('#foText');
