@@ -108,7 +108,7 @@
         brand.style.opacity = name.style.opacity = '1';
       }, 180);
     }
-    const start = () => { if (reduce) return; stop(); t = setInterval(() => go(i + 1), 3400); };
+    const start = () => { if (reduce) return; stop(); t = setInterval(() => go(i + 1), 5600); };   // one full turntable spin per product (CSS --spin)
     const stop = () => clearInterval(t);
     dots.forEach((d, n) => d.addEventListener('click', () => { go(n); start(); }));
     const stage = $('.hero-stage');
@@ -406,7 +406,7 @@
 
   /* ── Reveal on scroll (progressive: content is visible without JS / with reduced motion) ── */
   if (!reduce && 'IntersectionObserver' in window) {
-    const els = $$('.sec-head, .brand-row-head, .spot, .bcard, .pc-grid .pc, .why li, .fo-facts li, .vid, .gal, .contact-list li, .form, .howto');
+    const els = $$('.sec-head, .brand-row-head, .spot, .bcard, .pc-grid .pc, .about-media, .why li, .founder-media, .founder-head, .fo-facts li, .vid, .gal, .contact-list li, .form, .howto, .cta-in');
     const rio = new IntersectionObserver(es => es.forEach(en => {
       if (!en.isIntersecting) return; en.target.classList.add('is-in'); rio.unobserve(en.target);
     }), { rootMargin: '0px 0px -8% 0px' });
