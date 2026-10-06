@@ -87,15 +87,7 @@
   });
   document.addEventListener('click', e => { if (!drawer.hidden && !e.target.closest('#nav')) setDrawer(false); });
 
-  // active section in menu
-  const menuLinks = $$('.menu a');
-  if ('IntersectionObserver' in window) {
-    const io = new IntersectionObserver(es => es.forEach(en => {
-      if (!en.isIntersecting) return;
-      menuLinks.forEach(a => a.classList.toggle('is-active', a.getAttribute('href') === '#' + en.target.id));
-    }), { rootMargin: '-40% 0px -55% 0px' });
-    $$('main section[id]').forEach(s => io.observe(s));
-  }
+  // (the current page's menu link is marked at build time with aria-current="page")
 
   /* ── Hero slider ── */
   (function () {
@@ -125,14 +117,16 @@
     start();
   })();
 
-  /* ── Catalog: tabs, brand chips, search ── */
+  /* ── Catalog: tabs, brand chips, search (products page only) ── */
   const catalog = $('#catalog'), rows = $$('.brand-row'), cards = $$('.pc'), empty = $('#empty');
   const tabs = $$('.tab'), chips = $$('.bchip'), q = $('#q');
+  const hasFilters = !!(catalog && q);
   const state = { group: 'all', brand: null, q: '' };
   const norm = s => s.toLowerCase().replace(/[أإآ]/g, 'ا').replace(/ة/g, 'ه').replace(/ى/g, 'ي').replace(/[ًٌٍَُِّْـ]/g, '').trim();
-  cards.forEach(c => { c._s = norm(c.dataset.search); });
+  cards.forEach(c => { c._s = norm(c.dataset.search || ''); });
 
   function applyFilters() {
+    if (!hasFilters) return;
     const terms = norm(state.q).split(/\s+/).filter(Boolean);
     let shown = 0;
     rows.forEach(row => {
@@ -153,13 +147,14 @@
   chips.forEach(c => c.addEventListener('click', () => {
     state.brand = state.brand === c.dataset.brand ? null : c.dataset.brand; state.group = 'all'; applyFilters();
   }));
-  let qT; q.addEventListener('input', () => { clearTimeout(qT); qT = setTimeout(() => { state.q = q.value; applyFilters(); }, 120); });
+  let qT; q && q.addEventListener('input', () => { clearTimeout(qT); qT = setTimeout(() => { state.q = q.value; applyFilters(); }, 120); });
 
-  function jumpToBrand(id) {
-    state.brand = id; state.group = 'all'; state.q = ''; q.value = ''; applyFilters();
-    $('#products').scrollIntoView({ behavior: reduce ? 'auto' : 'smooth' });
+  // products/?brand=matrix or ?q=mango preselects a filter (shareable links)
+  if (hasFilters) {
+    const sp = new URLSearchParams(location.search);
+    if (sp.get('brand') && chips.some(c => c.dataset.brand === sp.get('brand'))) state.brand = sp.get('brand');
+    if (sp.get('q')) { state.q = q.value = sp.get('q'); }
   }
-  $$('[data-jump-brand]').forEach(el => el.addEventListener('click', e => { e.preventDefault(); jumpToBrand(el.dataset.jumpBrand); }));
 
   /* ── Dialog helpers ── */
   let lastFocus = null;
@@ -261,7 +256,7 @@
     return true;
   }
 
-  [formEl, $('#contactForm')].forEach(f => f.addEventListener('input', () => { const b = f.querySelector('.form-error'); if (!b.hidden) { b.hidden = true; f.querySelectorAll('[aria-invalid]').forEach(x => x.removeAttribute('aria-invalid')); } }));
+  [formEl, $('#contactForm')].filter(Boolean).forEach(f => f.addEventListener('input', () => { const b = f.querySelector('.form-error'); if (!b.hidden) { b.hidden = true; f.querySelectorAll('[aria-invalid]').forEach(x => x.removeAttribute('aria-invalid')); } }));
 
   formEl.addEventListener('submit', e => {
     e.preventDefault();
@@ -355,7 +350,8 @@
     const qty = Math.max(1, parseInt($('#pdQty').value, 10) || 1);
     addToCart(pdId, qty, $('#pdUnit').selectedIndex); closeDlg(pd);
   });
-  catalog.addEventListener('click', e => {
+  document.addEventListener('click', e => {
+    if (!e.target.closest('.pc')) return;
     const add = e.target.closest('[data-add]');
     if (add) { addToCart(add.dataset.add, 1, 0); return; }
     const open = e.target.closest('.pc-open');
@@ -364,7 +360,7 @@
 
   /* ── Contact form → WhatsApp ── */
   const cf = $('#contactForm');
-  cf.addEventListener('submit', e => {
+  cf && cf.addEventListener('submit', e => {
     e.preventDefault();
     const f = cf.elements, v = k => f[k].value.trim();
     if (!v('name')) return formError(cf, T.err_name, f.name);
@@ -410,7 +406,7 @@
 
   /* ── Reveal on scroll (progressive: content is visible without JS / with reduced motion) ── */
   if (!reduce && 'IntersectionObserver' in window) {
-    const els = $$('.sec-head, .brand-row-head, .spot, .why li, .fo-facts li, .vid, .gal, .contact-list li, .form, .howto');
+    const els = $$('.sec-head, .brand-row-head, .spot, .bcard, .pc-grid .pc, .why li, .fo-facts li, .vid, .gal, .contact-list li, .form, .howto');
     const rio = new IntersectionObserver(es => es.forEach(en => {
       if (!en.isIntersecting) return; en.target.classList.add('is-in'); rio.unobserve(en.target);
     }), { rootMargin: '0px 0px -8% 0px' });
