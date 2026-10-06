@@ -92,7 +92,11 @@
   /* ── Hero slider ── */
   (function () {
     // load the other hero images only after the first one has painted (keeps LCP fast)
-    addEventListener('load', () => setTimeout(() => $$('.hs img[data-src]').forEach(im => { im.src = im.dataset.src; im.removeAttribute('data-src'); }), 300));
+    addEventListener('load', () => setTimeout(() => $$('.hs img[data-src]').forEach(im => {
+      im.src = im.dataset.src; im.removeAttribute('data-src');
+      const sh = im.parentNode.querySelector('.hs-sheen');           // light sweep is masked by the product photo
+      if (sh) sh.style.setProperty('--m', `url("${im.src}")`);
+    }), 300));
     const slides = $$('.hs'), dots = $$('.hs-dot'), brand = $('#hsBrand'), name = $('#hsName');
     if (slides.length < 2) return;
     let i = 0, t;
@@ -108,7 +112,7 @@
         brand.style.opacity = name.style.opacity = '1';
       }, 180);
     }
-    const start = () => { if (reduce) return; stop(); t = setInterval(() => go(i + 1), 5600); };   // one full turntable spin per product (CSS --spin)
+    const start = () => { if (reduce) return; stop(); t = setInterval(() => go(i + 1), 4800); };   // one float + sheen cycle per product
     const stop = () => clearInterval(t);
     dots.forEach((d, n) => d.addEventListener('click', () => { go(n); start(); }));
     const stage = $('.hero-stage');
